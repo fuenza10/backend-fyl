@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model refreshToken {
+  revoked   Boolean  @default(false)
+  expires   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  id        String   @id @default(uuid())
+  userId    String   @map("userId")
+  user      users    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId], map: "refreshToken_usuarioId_fkey1")
+}
+
+model users {
+  id            String          @id @default(uuid())
+  rut           String          @db.VarChar(250)
+  firstName     String          @db.VarChar(250)
+  lastName      String          @db.VarChar(250)
+  email         String          @db.VarChar(250)
+  state         Boolean         @default(true)
+  createdAt     DateTime?       @default(now())
+  updatedAt     DateTime?       @updatedAt @db.Date
+  password      String          @db.VarChar(255)
+  isFirsLogin   Boolean         @default(true)
+  UserRole      UserRole[]
+  refreshToken  refreshToken[]
+  companies     UserCompany[]
+  userForms     userForms[]
+  formResponses formResponses[]
+}
+
+model Role {
+  id       String     @id @default(uuid())
+  name     RoleEnum   @unique
+  UserRole UserRole[]
+}
+
+model UserRole {
+  userId String
+  roleId String
+  Role   Role   @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users  users  @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([userId, roleId])
+}
+
+model companies {
+  id            String          @id @default(uuid())
+  rut           String          @db.VarChar(250)
+  name          String          @db.VarChar(250)
+  address       String          @db.VarChar(250)
+  email         String          @db.VarChar(250)
+  state         Boolean         @default(true)
+  createdAt     DateTime?       @default(now())
+  updatedAt     DateTime?       @updatedAt @db.Date
+  users         UserCompany[]
+  formResponses formResponses[]
+  CompanyForms  CompanyForms[]
+  responses     responses[]
+}
+
+model UserCompany {
+  userId    String
+  companyId String
+  users     users     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  companies companies @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([userId, companyId])
+}
+
+model CompanyForms {
+  companyId String
+  formId    String
+  companies companies @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  forms     forms     @relation(fields: [formId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([companyId, formId])
+}
+
+model forms {
+  id           String         @id @default(uuid())
+  name         String         @db.VarChar(250)
+  state        Boolean        @default(true)
+  createdAt    DateTime?      @default(now())
+  updatedAt    DateTime?      @updatedAt @db.Date
+  fields       formFields[]
+  userForms    userForms[]
+  CompanyForms CompanyForms[]
+  responses    responses[]
+}
+
+model formFields {
+  id            String          @id @default(uuid())
+  label         String          @db.VarChar(250)
+  type          String          @db.VarChar(250)
+  state         Boolean         @default(true)
+  createdAt     DateTime?       @default(now())
+  updatedAt     DateTime?       @updatedAt @db.Date
+  formId        String          @map("formId")
+  form          forms           @relation(fields: [formId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  formResponses formResponses[]
+  options       options[]
+}
+
+model options {
+  id          String     @id @default(uuid())
+  value       String     @db.VarChar(250)
+  createdAt   DateTime?  @default(now())
+  updatedAt   DateTime?  @updatedAt @db.Date
+  formFieldId String     @map("formField")
+  formField   formFields @relation(fields: [formFieldId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model formResponses {
+  id          String     @id @default(uuid())
+  value       String     @db.VarChar(250)
+  createdAt   DateTime?  @default(now())
+  updatedAt   DateTime?  @updatedAt @db.Date
+  formFieldId String     @map("formField")
+  formField   formFields @relation(fields: [formFieldId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId      String     @map("userId")
+  user        users      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  companies   companies? @relation(fields: [companiesId], references: [id])
+  companiesId String?
+  responseId  String     @map("responseId")
+  responses   responses  @relation(fields: [responseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model responses {
+  id            String          @id @default(uuid())
+  companyId     String          @map("companyId")
+  company       companies       @relation(fields: [companyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  formId        String
+  forms         forms           @relation(fields: [formId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  formResponses formResponses[] 
+
+  @@index([companyId], map: "index_responses_on_companyId")
+  @@index([formId], map: "index_responses_on_formId")
+}
+
+model userForms {
+  userId String
+  formId String
+  users  users  @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  forms  forms  @relation(fields: [formId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userId, formId])
+}
+
+enum RoleEnum {
+  ADMIN_ROLE
+  USER_ROLE
+  CLIENT_ROLE
+}

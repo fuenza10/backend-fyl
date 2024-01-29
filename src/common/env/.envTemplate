@@ -1,0 +1,7 @@
+JWT_KEY=
+PORT=
+DATABASE_URL=
+
+Crear 2 archivos .env
+.env
+development.env
